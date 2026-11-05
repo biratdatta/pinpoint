@@ -238,15 +238,17 @@ h2{font-size:clamp(2rem,4vw,3rem);line-height:1.08;letter-spacing:-.025em;font-w
 .small{font-size:14px;color:var(--muted);margin:16px 0 0}
 
 /* Support */
-.support{background:var(--ink);color:var(--ground);border-radius:24px;padding:56px;display:grid;grid-template-columns:1.4fr 1fr;gap:40px;align-items:center}
-.support h2{color:var(--ground)}
-.support p{color:color-mix(in srgb,var(--ground) 72%,var(--ink));font-size:1.1rem;margin:18px 0 0;max-width:52ch}
+.support{position:relative;isolation:isolate;overflow:hidden;background:#121A3C;color:#fff;border-radius:24px;padding:56px;display:grid;grid-template-columns:1.4fr 1fr;gap:40px;align-items:center}
+.support-bg{position:absolute;inset:0;width:100%;height:100%;z-index:-1;image-rendering:pixelated;image-rendering:crisp-edges}
+.support h2{color:#fff;text-shadow:0 2px 16px rgba(5,8,24,.6)}
+.support p{color:rgba(255,255,255,.86);font-size:1.1rem;margin:18px 0 0;max-width:52ch;text-shadow:0 1px 10px rgba(5,8,24,.7)}
 .support-actions{display:flex;flex-direction:column;gap:12px;align-items:flex-start}
-.support .btn-line{background:transparent;color:var(--ground);border-color:color-mix(in srgb,var(--ground) 30%,transparent)}
-.support .btn-line:hover{border-color:var(--ground)}
+.support .btn-line{background:rgba(14,20,48,.55);color:#fff;border-color:rgba(255,255,255,.35);backdrop-filter:blur(6px)}
+.support .btn-line:hover{border-color:#fff}
 
 /* Footer */
-footer{padding:48px 0 64px;color:var(--muted);font-size:15px}
+footer{padding:48px 0 0;color:var(--muted);font-size:15px}
+.footer-bg{display:block;width:100%;height:150px;margin-top:40px;image-rendering:pixelated;image-rendering:crisp-edges}
 footer .wrap{display:flex;flex-wrap:wrap;gap:12px 28px;align-items:center}
 footer a{color:var(--ink)}
 footer .who{margin-right:auto;color:var(--ink);font-weight:600}
@@ -478,6 +480,7 @@ footer .who{margin-right:auto;color:var(--ink);font-weight:600}
   <section class="block" aria-labelledby="sup-title">
     <div class="wrap">
       <div class="support">
+        <canvas class="support-bg" id="support-bg" aria-hidden="true"></canvas>
         <div>
           <h2 id="sup-title" data-i18n="sup.title">Free, and made by one person</h2>
           <p data-i18n="sup.body">Pinpoint is built and maintained by Birat Datta. It's free and open source. If it saves you time, you can support it with a coffee.</p>
@@ -499,6 +502,7 @@ footer .who{margin-right:auto;color:var(--ink);font-weight:600}
     <a href="https://github.com/biratdatta/pinpoint" target="_blank" rel="noopener">GitHub</a>
     <a href="https://buymeacoffee.com/biratdatta" target="_blank" rel="noopener" data-i18n="hero.coffee">Buy me a coffee</a>
   </div>
+  <canvas class="footer-bg" id="footer-bg" aria-hidden="true"></canvas>
 </footer>
 <script>
 const I18N = {
@@ -815,6 +819,80 @@ const FRAMEWORKS = [
   let paintTimer;
   new ResizeObserver(() => { clearTimeout(paintTimer); paintTimer = setTimeout(paint, 120); }).observe(bg);
   paint();
+
+  // ---------- More pixel scenes: night sky (support card) and meadow (footer) ----------
+  // fn(x, y, W, H) returns an [r, g, b] colour, or null for a transparent pixel.
+  function pixelPaint(canvas, cell, fn) {
+    const r = canvas.getBoundingClientRect();
+    if (!r.width || !r.height) return;
+    const W = Math.max(40, Math.round(r.width / cell)), H = Math.max(16, Math.round(r.height / cell));
+    canvas.width = W; canvas.height = H;
+    const ctx = canvas.getContext('2d'), img = ctx.createImageData(W, H), px = img.data;
+    for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+      const c = fn(x, y, W, H), k = (y * W + x) * 4;
+      if (c) { px[k] = c[0]; px[k + 1] = c[1]; px[k + 2] = c[2]; px[k + 3] = 255; }
+    }
+    ctx.putImageData(img, 0, 0);
+  }
+  function watchPaint(canvas, painter) {
+    let t;
+    new ResizeObserver(() => { clearTimeout(t); t = setTimeout(painter, 120); }).observe(canvas);
+    painter();
+  }
+
+  const NIGHT = ['#0C1230', '#131C45', '#1B275A', '#253470', '#30428A'].map(hex);
+  const STAR = ['#FFF6D0', '#CFDBFF', '#FFFFFF'].map(hex);
+  const MOON = hex('#FFE9A0'), CRATER = hex('#E9CF78'), HALO = hex('#3A4C94');
+  const FAR_HILL = hex('#1A2552'), NEAR_HILL = hex('#0A0F26'), FIREFLY = hex('#FFD43B');
+  const supportBg = document.getElementById('support-bg');
+  const paintNight = () => pixelPaint(supportBg, 4, (x, y, W, H) => {
+    const tx = x / W, ty = y / H;
+    const far = 0.7 + (fbm(tx * 3, 0.2, 51) - 0.5) * 0.22;
+    const near = 0.84 + (fbm(tx * 6, 0.9, 53) - 0.5) * 0.16;
+    if (ty > near) return hash(x, y, 57) > 0.992 ? FIREFLY : NEAR_HILL;
+    if (ty > far) return FAR_HILL;
+    const mx = W * 0.86, my = H * 0.24, mr = Math.max(5, H * 0.12), d = Math.hypot(x - mx, y - my);
+    if (d < mr) return fbm(x * 0.35, y * 0.35, 59) > 0.6 ? CRATER : MOON;
+    if (d < mr * 1.7 && BAYER[(y % 4) * 4 + (x % 4)] > 0.45) return HALO;
+    const s = hash(x, y, 3);
+    const behindText = tx < 0.62 && ty < 0.62;
+    if (ty < far - 0.05 && s > (behindText ? 0.996 : 0.99)) return STAR[Math.floor(hash(x, y, 4) * 3)];
+    return pick(NIGHT, ty / far, x, y);
+  });
+  watchPaint(supportBg, paintNight);
+
+  // Meadow with a little Pinpoint marker stuck in the hill
+  const PIN = ['..###..', '.#YYY#.', '#YYYYY#', '#YY#YY#', '#YYYYY#', '.#YYY#.', '..#Y#..', '...#...', '...#...', '...#...'];
+  const PIN_INK = hex('#1B2230'), PIN_YEL = hex('#FFD43B');
+  const FLOWERS = ['#FFD43B', '#E5484D', '#F7F7F2', '#C9A7F5'].map(hex);
+  const MEADOW = {
+    light: { far: ['#DCEAC0', '#C8DC9C'].map(hex), near: GRASS.slice(1) },
+    dark: { far: ['#22351F', '#1C2D1A'].map(hex), near: ['#3F6326', '#2F4D1D', '#223A15', '#172A0E'].map(hex) }
+  };
+  const darkMQ = window.matchMedia('(prefers-color-scheme: dark)');
+  const isDark = () => { const th = document.documentElement.dataset.theme; return th === 'dark' || (th !== 'light' && darkMQ.matches); };
+  const footerBg = document.getElementById('footer-bg');
+  const paintMeadow = () => {
+    const pal = isDark() ? MEADOW.dark : MEADOW.light;
+    const ridgeFar = (tx) => 0.3 + (fbm(tx * 2.5, 0.3, 41) - 0.5) * 0.5;
+    const ridgeNear = (tx) => 0.55 + (fbm(tx * 4, 0.7, 43) - 0.5) * 0.4;
+    let pinX = -99, pinTop = -99;
+    pixelPaint(footerBg, 4, (x, y, W, H) => {
+      if (pinX < -1) { pinX = Math.round(W * 0.8); pinTop = Math.round(ridgeNear(pinX / W) * H) - PIN.length + 3; }
+      const row = PIN[y - pinTop], ch = row && row[x - pinX + 3];
+      if (ch === '#') return PIN_INK;
+      if (ch === 'Y') return PIN_YEL;
+      const tx = x / W, ty = y / H, near = ridgeNear(tx);
+      if (ty > near) {
+        if (hash(x, y, 9) > 0.975 && ty < near + 0.3) return FLOWERS[Math.floor(hash(x, y, 10) * FLOWERS.length)];
+        return pick(pal.near, Math.min(1, (ty - near) / (1 - near) + (fbm(tx * 40, ty * 10, 47) - 0.5) * 0.5), x, y);
+      }
+      if (ty > ridgeFar(tx)) return pick(pal.far, (ty - ridgeFar(tx)) * 2, x, y);
+      return null;
+    });
+  };
+  watchPaint(footerBg, paintMeadow);
+  darkMQ.addEventListener('change', paintMeadow);
 
   // ---------- Frameworks ----------
   let currentFw = FRAMEWORKS[0].id;
