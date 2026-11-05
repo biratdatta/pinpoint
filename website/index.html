@@ -247,7 +247,8 @@ h2{font-size:clamp(2rem,4vw,3rem);line-height:1.08;letter-spacing:-.025em;font-w
 .support .btn-line:hover{border-color:#fff}
 
 /* Footer */
-footer{padding:48px 0 0;color:var(--muted);font-size:15px}
+footer{position:relative;padding:48px 0 0;color:var(--muted);font-size:15px}
+.footer-bugs{position:absolute;left:0;right:0;bottom:0;width:100%;height:150px;pointer-events:none}
 .footer-bg{display:block;width:100%;height:150px;margin-top:40px;image-rendering:pixelated;image-rendering:crisp-edges}
 footer .wrap{display:flex;flex-wrap:wrap;gap:12px 28px;align-items:center}
 footer a{color:var(--ink)}
@@ -503,8 +504,8 @@ footer .who{margin-right:auto;color:var(--ink);font-weight:600}
     <a href="https://buymeacoffee.com/biratdatta" target="_blank" rel="noopener" data-i18n="hero.coffee">Buy me a coffee</a>
   </div>
   <canvas class="footer-bg" id="footer-bg" aria-hidden="true"></canvas>
-</footer>
-<script>
+  <canvas class="footer-bugs" id="footer-bugs" aria-hidden="true"></canvas>
+</footer><script>
 const I18N = {
 en: {
   "hero.t1": "Point at the problem.", "hero.t2": "Your agent finds the code.", "hero.badge": "Free & open source · Chrome, Edge, Brave, Arc", "dl.small": "Download · v1.0", "dl.big": "Chrome extension", "gh.small": "Source code", "gh.big": "View on GitHub",
@@ -893,6 +894,67 @@ const FRAMEWORKS = [
   };
   watchPaint(footerBg, paintMeadow);
   darkMQ.addEventListener('change', paintMeadow);
+
+  // ---------- Pixel butterflies drifting over the page and the footer meadow ----------
+  const BF_OPEN = ['.K.....K.', 'KWK.K.KWK', 'KWWKBKWWK', 'KWWWBWWWK', '.KWWBWWK.', '.KWKBKWK.', '..K...K..'];
+  const BF_SHUT = ['.........', '..K.K.K..', '..KWBWK..', '..KWBWK..', '..KWBWK..', '...KBK...', '.........'];
+  const BF_COLORS = ['#FFD43B', '#FF9F43', '#7CC4FA', '#F7A1C4', '#C9A7F5', '#6FD6A0'];
+  function flock(canvas, count, yMin, yMax) {
+    const ctx = canvas.getContext('2d'), cell = 3;
+    let W = 0, H = 0, dpr = 1, running = false, last = 0, time = 0;
+    const bugs = Array.from({ length: count }, (_, i) => ({
+      fx: Math.random(), fy: Math.random(), a: Math.random() * 6.28, v: 22 + Math.random() * 26,
+      ph: Math.random() * 6.28, col: BF_COLORS[(i + Math.floor(Math.random() * 6)) % BF_COLORS.length], seed: i * 17 + 3
+    }));
+    function size() {
+      const r = canvas.getBoundingClientRect();
+      dpr = Math.min(2, window.devicePixelRatio || 1); W = r.width; H = r.height;
+      canvas.width = Math.round(W * dpr); canvas.height = Math.round(H * dpr);
+      bugs.forEach((b) => { if (b.x === undefined) { b.x = b.fx * W; b.y = (yMin + b.fy * (yMax - yMin)) * H; } b.y = Math.min(b.y, yMax * H); });
+    }
+    function step(dt) {
+      time += dt;
+      bugs.forEach((b) => {
+        b.a += (vnoise(time * 0.5, b.seed, 71) - 0.5) * dt * 4;
+        const top = yMin * H, bot = yMax * H;
+        if (b.y < top) b.a += (Math.PI / 2 - b.a) * dt * 2;
+        if (b.y > bot) b.a += (-Math.PI / 2 - b.a) * dt * 2;
+        b.x += Math.cos(b.a) * b.v * dt;
+        b.y += Math.sin(b.a) * b.v * dt * 0.6 + Math.sin(time * 4 + b.ph) * 0.5;
+        if (b.x > W + 24) b.x = -24; else if (b.x < -24) b.x = W + 24;
+      });
+    }
+    function draw() {
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      ctx.clearRect(0, 0, W, H);
+      bugs.forEach((b) => {
+        const rows = Math.floor((time + b.ph) * 7) % 2 ? BF_OPEN : BF_SHUT;
+        const x0 = Math.round(b.x - 13), y0 = Math.round(b.y - 10);
+        rows.forEach((row, ry) => {
+          for (let rx = 0; rx < row.length; rx++) {
+            const ch = row[rx];
+            if (ch === '.') continue;
+            ctx.fillStyle = ch === 'W' ? b.col : '#1B2230';
+            ctx.fillRect(x0 + rx * cell, y0 + ry * cell, cell, cell);
+          }
+        });
+      });
+    }
+    function frame(now) {
+      if (!running) return;
+      const dt = Math.min(0.05, (now - last) / 1000 || 0); last = now;
+      step(dt); draw();
+      requestAnimationFrame(frame);
+    }
+    new ResizeObserver(() => { size(); draw(); }).observe(canvas);
+    size(); step(0); draw();
+    if (reduced) return;  // reduced motion: butterflies stay still
+    new IntersectionObserver(([e]) => {
+      if (e.isIntersecting && !running) { running = true; last = performance.now(); requestAnimationFrame(frame); }
+      else if (!e.isIntersecting) running = false;
+    }).observe(canvas);
+  }
+  flock(document.getElementById('footer-bugs'), 4, 0.05, 0.6);
 
   // ---------- Frameworks ----------
   let currentFw = FRAMEWORKS[0].id;
