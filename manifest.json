@@ -1,0 +1,63 @@
+{
+  "manifest_version": 3,
+  "name": "Pinpoint: visual feedback for AI agents",
+  "short_name": "Pinpoint",
+  "version": "1.0.0",
+  "description": "Click any element, leave a note, and copy structured feedback for your AI coding agent. By Birat Datta.",
+  "author": {
+    "email": "birat.datta26@gmail.com"
+  },
+  "homepage_url": "https://biratdatta.tech",
+  "permissions": [
+    "storage",
+    "activeTab",
+    "scripting"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "action": {
+    "default_title": "Show or hide Pinpoint",
+    "default_icon": {
+      "16": "icons/16.png",
+      "32": "icons/32.png",
+      "48": "icons/48.png",
+      "128": "icons/128.png"
+    }
+  },
+  "icons": {
+    "16": "icons/16.png",
+    "32": "icons/32.png",
+    "48": "icons/48.png",
+    "128": "icons/128.png"
+  },
+  "commands": {
+    "toggle-annotate": {
+      "suggested_key": {
+        "default": "Alt+Shift+A"
+      },
+      "description": "Start or stop annotating"
+    }
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "<all_urls>"
+      ],
+      "js": [
+        "main.js"
+      ],
+      "run_at": "document_start",
+      "world": "MAIN"
+    },
+    {
+      "matches": [
+        "<all_urls>"
+      ],
+      "js": [
+        "content.js"
+      ],
+      "run_at": "document_idle"
+    }
+  ]
+}
