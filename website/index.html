@@ -273,7 +273,7 @@ footer .who{margin-right:auto;color:var(--ink);font-weight:600}
   .nav-links{display:none}
   .hero{padding-top:calc(env(safe-area-inset-top,0px) + 120px)}
   .hero-bg{height:calc(100% - 140px)}
-  .compare,.panel,.install,.support{grid-template-columns:1fr}
+  .compare,.panel,.install,.support{grid-template-columns:minmax(0,1fr)}
   .features{grid-template-columns:repeat(2,minmax(0,1fr))}
   .steps{grid-template-columns:repeat(2,minmax(0,1fr))}
   .support{padding:36px 28px}
@@ -282,11 +282,45 @@ footer .who{margin-right:auto;color:var(--ink);font-weight:600}
   body{font-size:16px}
   .features{grid-template-columns:1fr}
   .steps{grid-template-columns:1fr}
-  .hero{padding-top:44px}
+  .wrap{padding:0 16px}
+  .hero{padding-top:calc(env(safe-area-inset-top,0px) + 104px)}
+  .hero-inner{padding:0 16px}
+  .nav .wrap{gap:10px;min-height:64px;flex-wrap:nowrap}
+  .brand{font-size:19px}
+  .brand svg{width:28px;height:28px}
+  .nav-end{gap:6px}
+  .nav-end .icon-only{display:none}
+  .select select{font-size:14px;padding:8px 30px 8px 14px;min-height:40px}
+  .select::after{right:13px}
   .nav-end .gh-label{display:none}
-  .pill-link.gh{padding:0;width:44px;justify-content:center}
-  .big-btn{width:100%;justify-content:center}
-  section.block{padding:72px 0}
+  .pill-link.gh{padding:0;width:40px;min-height:40px;justify-content:center}
+  .badge{font-size:13.5px;gap:8px;padding:5px 14px 5px 5px;max-width:100%;text-align:left}
+  .badge b{font-size:13px;padding:3px 10px}
+  .hero h1{margin-top:22px}
+  .hero p.lede{margin-top:20px}
+  .cta-row{margin-top:28px;gap:12px}
+  .big-btn{width:100%;justify-content:center;min-height:68px}
+  .big-btn strong{font-size:20px}
+  .demo-section{padding:48px 0 72px}
+  .demo{border-radius:12px}
+  .demo-ctrl{width:100%}
+  .demo-ctrl button{flex:1;justify-content:center}
+  section.block{padding:64px 0}
+  .compare{margin-top:32px}
+  .cmp{padding:22px}
+  .cmp blockquote{font-size:1.1rem}
+  .code pre{font-size:12.5px}
+  .cmp .code pre{white-space:pre-wrap;overflow-wrap:anywhere}
+  .tabs{gap:6px;margin-top:28px}
+  .tabs button{font-size:14px;padding:0 13px;min-height:40px}
+  .features{gap:32px;margin-top:40px}
+  .install{gap:28px;margin-top:32px}
+  .support{padding:108px 22px 30px;border-radius:20px;gap:24px}
+  .support-actions{width:100%}
+  .support-actions .btn{width:100%;justify-content:center}
+  footer .wrap{gap:10px 20px}
+  footer .who{width:100%}
+  .footer-bg,.footer-bugs{height:120px}
 }
 @media (prefers-reduced-motion:reduce){
   html{scroll-behavior:auto}
@@ -804,25 +838,27 @@ const FRAMEWORKS = [
     bg.width = W; bg.height = H;
     const ctx = bg.getContext('2d'), img = ctx.createImageData(W, H), px = img.data;
     const horizon = 0.64;
+    // On tall (phone) screens, sample the noise in square-ish units so clouds and leaves aren't stretched into streaks
+    const asp = Math.max(1, (H / W) / 0.55);
     for (let y = 0; y < H; y++) {
       const ty = y / H;
       for (let x = 0; x < W; x++) {
         const tx = x / W;
         let c = pick(SKY, ty / horizon, x, y);
         // Clouds: a soft band above the horizon
-        const cl = fbm(tx * 5, ty * 9, 11) - 0.12 * Math.abs(ty - 0.52) * 10;
+        const cl = fbm(tx * 5, ty * 9 * asp, 11) - 0.12 * Math.abs(ty - 0.52) * 10;
         if (ty > 0.36 && cl > 0.5) c = pick(CLOUD, Math.min(1, (cl - 0.5) * 4), x, y);
         // Meadow rising toward the bottom
         const ridge = horizon + (fbm(tx * 3, 0.5, 5) - 0.5) * 0.12;
         if (ty > ridge) {
           const depth = (ty - ridge) / (1 - ridge);
-          const tex = fbm(tx * 40, ty * 18, 21);
+          const tex = fbm(tx * 40, ty * 18 * asp, 21);
           c = pick(GRASS, Math.min(1, depth * 0.9 + (tex - 0.5) * 0.55), x, y);
         }
         // Leaves hanging in from the top corners
-        const dl = Math.hypot(tx * 1.25, ty * 0.95), dr = Math.hypot((1 - tx) * 1.25, ty * 1.05);
+        const dl = Math.hypot(tx * 1.25, ty * 0.95 * asp), dr = Math.hypot((1 - tx) * 1.25, ty * 1.05 * asp);
         const reach = Math.max(0, 1 - dl / 0.62, 1 - dr / 0.58);
-        const leaf = fbm(tx * 22, ty * 22, 33) * 0.75 + reach * 0.75;
+        const leaf = fbm(tx * 22, ty * 22 * asp, 33) * 0.75 + reach * 0.75;
         if (leaf > 0.82) c = pick(LEAF, Math.min(1, (leaf - 0.82) * 3.2), x, y);
         else if (leaf > 0.78 && hash(x, y, 7) > 0.55) c = LEAF[0];
         const k = (y * W + x) * 4;
@@ -866,7 +902,8 @@ const FRAMEWORKS = [
     const near = 0.84 + (fbm(tx * 6, 0.9, 53) - 0.5) * 0.16;
     if (ty > near) return hash(x, y, 57) > 0.992 ? FIREFLY : NEAR_HILL;
     if (ty > far) return FAR_HILL;
-    const mx = W * 0.86, my = H * 0.24, mr = Math.max(5, H * 0.12), d = Math.hypot(x - mx, y - my);
+    const tall = H / W > 0.9;  // phone layout: moon sits in the space above the heading
+    const mx = tall ? W * 0.8 : W * 0.86, my = tall ? 13 : H * 0.24, mr = tall ? 8 : Math.max(5, H * 0.12), d = Math.hypot(x - mx, y - my);
     if (d < mr) return fbm(x * 0.35, y * 0.35, 59) > 0.6 ? CRATER : MOON;
     if (d < mr * 1.7 && BAYER[(y % 4) * 4 + (x % 4)] > 0.45) return HALO;
     const s = hash(x, y, 3);
