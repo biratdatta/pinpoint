@@ -19,6 +19,10 @@
   <a href="https://github.com/biratdatta/pinpoint/releases/latest/download/pinpoint-v1.0.0.zip"><strong>⬇ Download pinpoint-v1.0.0.zip</strong></a>
 </p>
 
+<p align="center">
+  <a href="https://www.producthunt.com/products/pinpoint-11?embed=true&amp;utm_source=badge-featured&amp;utm_medium=badge&amp;utm_campaign=badge-pinpoint-d0472034-b6a7-4d15-8d22-64a12966c114" target="_blank" rel="noopener noreferrer"><img alt="Pinpoint - Point at UI bugs. Your AI coding agent finds the code. | Product Hunt" width="250" height="54" src="https://api.producthunt.com/widgets/embed-image/v1/featured.svg?post_id=1306102&amp;theme=light&amp;t=1794022946639"></a>
+</p>
+
 ---
 
 ## Why
