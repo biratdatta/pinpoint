@@ -12,6 +12,7 @@
     paused: false,
     annotations: [],
     detail: 'standard',
+    recordSteps: true,
     hoverEl: null,
     editing: null,
     suppressClick: false,
@@ -72,6 +73,22 @@
   .seg button:hover{color:#F7F7F2}
   .seg button[aria-pressed="true"]{background:#F7F7F2;color:#1B2230}
   .seg button[data-v="high"][aria-pressed="true"]{background:#E5484D;color:#fff}
+  .ctx{margin-top:10px}
+  .chips{display:flex;flex-wrap:wrap;gap:5px}
+  .chip{background:#262E3E;color:#C4CAD6;border-radius:6px;padding:3px 7px;font-size:11px;line-height:1.3}
+  .ctx-tog{all:unset;cursor:pointer;display:flex;align-items:center;gap:6px;color:#C4CAD6;font-size:12px;margin-top:8px;border-radius:5px}
+  .ctx-tog:hover{color:#F7F7F2}
+  .ctx-tog .chev{display:inline-block;width:10px;transition:transform .15s}
+  .ctx-tog[aria-expanded="true"] .chev{transform:rotate(90deg)}
+  .steps-list{list-style:none;margin:4px 0 0;padding:0;max-height:150px;overflow:auto}
+  .steps-list li{display:flex;align-items:center;gap:8px;padding:4px 6px;border-radius:6px;font-size:12px;color:#D5D9E2}
+  .steps-list li:hover{background:#262E3E}
+  .steps-list .n{color:#8A93A6;min-width:14px}
+  .steps-list .t{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .steps-list button{all:unset;cursor:pointer;color:#6F788B;font-size:15px;line-height:1;padding:0 3px;border-radius:4px}
+  .steps-list button:hover{color:#FF8A8D}
+  .ctx-note{font-size:11px;color:#6F788B;margin:4px 0 0 6px}
+  .rec{position:absolute;top:5px;right:5px;width:7px;height:7px;border-radius:50%;background:#E5484D;box-shadow:0 0 0 2px #1B2230}
   .actions{display:flex;align-items:center;gap:6px;margin-top:12px}
   .actions .sp{flex:1}
   .hint{font-size:11px;color:#6F788B}
@@ -93,6 +110,7 @@
 
   .panel{position:fixed;right:16px;bottom:64px;width:272px;background:#1B2230;color:#F7F7F2;border-radius:12px;padding:12px;z-index:5;box-shadow:0 16px 40px rgba(10,14,22,.38),0 0 0 1px rgba(255,255,255,.07)}
   .panel h3{margin:0 0 8px;font-size:13px;font-weight:600}
+  .panel h3.h3-gap{margin-top:12px;padding-top:10px;border-top:1px solid #343D50}
   .opt{display:flex;gap:9px;align-items:flex-start;padding:7px 8px;border-radius:8px;cursor:pointer}
   .opt:hover{background:#262E3E}
   .opt input{accent-color:#FFD43B;margin:2px 0 0}
@@ -122,6 +140,12 @@
       <div class="seg" data-group="intent"><button data-v="fix">Fix</button><button data-v="change">Change</button><button data-v="question">Question</button></div></div>
     <div class="field"><span class="field-label">Priority</span>
       <div class="seg" data-group="priority"><button data-v="low">Low</button><button data-v="normal">Normal</button><button data-v="high">High</button></div></div>
+    <div class="ctx">
+      <div class="chips" aria-label="Viewport when noted"></div>
+      <button class="ctx-tog" aria-expanded="false" hidden><span class="chev" aria-hidden="true">›</span><span class="ctx-count"></span></button>
+      <ol class="steps-list" hidden></ol>
+      <p class="ctx-note" hidden>Never records what you type</p>
+    </div>
     <div class="actions">
       <button class="btn danger" data-act="delete" hidden>Delete</button>
       <span class="sp"></span>
@@ -134,13 +158,15 @@
     <label class="opt"><input type="radio" name="detail" value="compact"><div><b>Compact</b><span>Selector, selected text and your note</span></div></label>
     <label class="opt"><input type="radio" name="detail" value="standard"><div><b>Standard</b><span>Adds component tree, source file and DOM path</span></div></label>
     <label class="opt"><input type="radio" name="detail" value="full"><div><b>Full</b><span>Adds position, attributes and computed styles</span></div></label>
+    <h3 class="h3-gap">Reproduction</h3>
+    <label class="opt"><input type="checkbox" name="steps"><div><b>Record recent steps</b><span>Adds the clicks, scrolls, resizes and navigation before each note. Never records what you type.</span></div></label>
     <p class="credit">Made by Birat Datta<br><a href="https://biratdatta.tech" target="_blank" rel="noopener">biratdatta.tech</a> <a href="mailto:birat.datta26@gmail.com">birat.datta26@gmail.com</a></p>
   </div>
   <div class="bar" hidden role="toolbar" aria-label="Pinpoint">
     <button data-act="annotate" aria-pressed="false" title="Annotate (Alt+Shift+A)" aria-label="Annotate">${ICON.annotate}</button>
     <button data-act="pause" aria-pressed="false" title="Pause animations" aria-label="Pause animations">${ICON.pause}</button>
     <button data-act="copy" title="Copy feedback as markdown" aria-label="Copy feedback">${ICON.copy}<span class="badge" hidden>0</span></button>
-    <button data-act="settings" aria-pressed="false" title="Output detail" aria-label="Output detail">${ICON.settings}</button>
+    <button data-act="settings" aria-pressed="false" title="Output detail" aria-label="Output detail">${ICON.settings}<span class="rec" title="Recording recent steps" hidden></span></button>
     <button data-act="clear" title="Clear annotations on this page" aria-label="Clear annotations">${ICON.clear}</button>
     <span class="sep"></span>
     <button data-act="hide" title="Hide Pinpoint" aria-label="Hide Pinpoint">${ICON.hide}</button>
@@ -153,7 +179,8 @@
     popTarget: $('.pop-target'), popSub: $('.pop-sub'), popQuote: $('.pop-quote'), popText: $('.pop-text'),
     del: $('[data-act="delete"]'), saveBtn: $('[data-act="save"]'),
     panel: $('.panel'), bar: $('.bar'), badge: $('.badge'), toast: $('.toast'),
-    annotateBtn: $('[data-act="annotate"]'), pauseBtn: $('[data-act="pause"]'), settingsBtn: $('[data-act="settings"]')
+    annotateBtn: $('[data-act="annotate"]'), pauseBtn: $('[data-act="pause"]'), settingsBtn: $('[data-act="settings"]'),
+    chips: $('.chips'), ctxTog: $('.ctx-tog'), ctxCount: $('.ctx-count'), stepsList: $('.steps-list'), ctxNote: $('.ctx-note'), rec: $('.rec')
   };
   document.documentElement.appendChild(host);
 
@@ -165,7 +192,8 @@
   (document.head || document.documentElement).appendChild(globalStyle);
 
   // ---------- Element description ----------
-  const esc = (typeof CSS !== 'undefined' && CSS.escape) ? (v) => CSS.escape(v) : (v) => String(v).replace(/([^\w-])/g, '\\$1');
+  // window.CSS: the local `CSS` constant above is our stylesheet string, not the CSS namespace.
+  const esc = (window.CSS && window.CSS.escape) ? (v) => window.CSS.escape(v) : (v) => String(v).replace(/([^\w-])/g, '\\$1');
   const goodId = (id) => /^[A-Za-z][\w-]*$/.test(id) && !/\d{4,}/.test(id) && !/^(radix|headlessui|react-aria|mui|rc-|ember)/i.test(id);
   const hashy = (c) => c.length >= 6 && /\d/.test(c) && /[a-z]/i.test(c) && !/[-_]/.test(c);
   const stableClasses = (el) => [...el.classList].filter((c) =>
@@ -318,6 +346,85 @@
   }
   const hideHL = () => { ui.hl.hidden = true; };
 
+  // ---------- Reproduction context: environment + recent steps ----------
+  // Kept in memory only, attached to a note when you create it. Typed values are never recorded.
+  const STEP_MAX = 15, STEPS_PER_NOTE = 8;
+  const steps = [];
+  let stepsCutoff = 0;  // steps before this time were already attached to an earlier note
+  let lastHref = location.href;
+  const where = () => location.pathname + location.search + location.hash;
+  const short = (s, n = 40) => { s = String(s || '').trim().replace(/\s+/g, ' '); return s.length > n ? s.slice(0, n - 1) + '…' : s; };
+  function addStep(text, mergeKey) {
+    if (!state.recordSteps) return;
+    if (location.href !== lastHref) checkNav();  // SPA route changes land in the right order
+    const t = Date.now(), last = steps[steps.length - 1];
+    if (mergeKey && last && last.key === mergeKey) { last.text = text; last.t = t; return; }
+    steps.push({ t, key: mergeKey || null, text });
+    if (steps.length > STEP_MAX) steps.shift();
+  }
+  function describeTarget(el) {
+    const hit = el.closest('a,button,[role="button"],[role="tab"],[role="menuitem"],[role="link"],summary,label,input,select,textarea') || el;
+    const isField = /^(input|select|textarea)$/i.test(hit.tagName);
+    const name = isField
+      ? (hit.getAttribute('aria-label') || hit.getAttribute('placeholder') || hit.getAttribute('name') || '')
+      : (hit.getAttribute('aria-label') || hit.innerText || hit.textContent || hit.getAttribute('title') || hit.getAttribute('alt') || '');
+    const n = short(name);
+    return (n ? `"${n}" ` : '') + '`' + labelFor(hit) + '`';
+  }
+  function envNow() {
+    const mq = (q) => !!(window.matchMedia && matchMedia(q).matches);
+    return {
+      w: innerWidth, h: innerHeight, dpr: Math.round((window.devicePixelRatio || 1) * 100) / 100,
+      scrollY: Math.round(scrollY), dark: mq('(prefers-color-scheme: dark)'),
+      touch: mq('(pointer: coarse)'), reducedMotion: mq('(prefers-reduced-motion: reduce)'), url: location.href
+    };
+  }
+  function browserName() {
+    const ua = navigator.userAgent;
+    const os = /Mac OS X/.test(ua) ? 'macOS' : /Windows/.test(ua) ? 'Windows' : /Android/.test(ua) ? 'Android' : /(iPhone|iPad)/.test(ua) ? 'iOS' : /Linux/.test(ua) ? 'Linux' : '';
+    const m = ua.match(/(Edg|OPR|Brave|Chrome|Firefox|Version)\/(\d+)/);
+    const names = { Edg: 'Edge', OPR: 'Opera', Version: 'Safari' };
+    const b = m ? `${names[m[1]] || m[1]} ${m[2]}` : 'Unknown browser';
+    return os ? `${b} on ${os}` : b;
+  }
+
+  addStep(`Opened ${where()} at ${innerWidth}×${innerHeight}`);
+  function checkNav() { if (location.href !== lastHref) { lastHref = location.href; addStep(`Navigated to ${where()}`); } }
+  window.addEventListener('popstate', checkNav);
+  window.addEventListener('hashchange', checkNav);
+  window.addEventListener('click', (e) => {
+    if (state.active || isOurs(e)) return;
+    const el = targetOf(e);
+    if (el && el !== document.documentElement && el !== document.body) addStep(`Clicked ${describeTarget(el)}`);
+    setTimeout(checkNav, 0);
+  }, true);
+  window.addEventListener('input', (e) => {
+    if (state.active || isOurs(e)) return;
+    const el = targetOf(e);
+    if (!el) return;
+    const t = (el.getAttribute('type') || '').toLowerCase();
+    if (t === 'checkbox' || t === 'radio' || el.tagName === 'SELECT') return;  // handled by 'change'
+    addStep(`Typed in ${describeTarget(el)}`, 'type:' + labelFor(el));
+  }, true);
+  window.addEventListener('change', (e) => {
+    if (state.active || isOurs(e)) return;
+    const el = targetOf(e);
+    if (!el) return;
+    const t = (el.getAttribute('type') || '').toLowerCase();
+    if (t === 'checkbox') addStep(`${el.checked ? 'Checked' : 'Unchecked'} ${describeTarget(el)}`);
+    else if (t === 'radio' || el.tagName === 'SELECT') addStep(`Changed ${describeTarget(el)}`);
+  }, true);
+  window.addEventListener('keydown', (e) => {
+    if (state.active || isOurs(e) || !['Enter', 'Escape'].includes(e.key)) return;
+    const el = targetOf(e);
+    addStep(`Pressed ${e.key}${el && el !== document.body ? ' in ' + describeTarget(el) : ''}`);
+  }, true);
+  window.addEventListener('scroll', (e) => {
+    if (state.active || (e.target !== document && e.target !== document.documentElement)) return;
+    addStep(`Scrolled to y=${Math.round(scrollY)}`, 'scroll');
+  }, { capture: true, passive: true });
+  window.addEventListener('resize', () => addStep(`Resized viewport to ${innerWidth}×${innerHeight}`, 'resize'));
+
   // ---------- Markers ----------
   function resolve(a) {
     let el = elCache.get(a.id);
@@ -376,6 +483,39 @@
     root.querySelectorAll(`.seg[data-group="${group}"] button`).forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.v === value)));
   }
 
+  // ---------- Context in the popover: viewport chips + editable steps ----------
+  function renderContext(keepOpen) {
+    const d = state.editing.data, env = d.env;
+    ui.chips.innerHTML = '';
+    if (env) {
+      const items = [`${env.w}×${env.h}`, `DPR ${env.dpr}`, env.dark ? 'Dark' : 'Light'];
+      if (env.touch) items.push('Touch');
+      if (env.scrollY) items.push(`y=${env.scrollY}`);
+      items.forEach((t) => { const c = document.createElement('span'); c.className = 'chip'; c.textContent = t; ui.chips.append(c); });
+    }
+    const list = d.steps || [];
+    const open = keepOpen === undefined ? list.length <= 3 : keepOpen;
+    ui.ctxTog.hidden = ui.ctxNote.hidden = !list.length;
+    ui.ctxCount.textContent = `${list.length} step${list.length === 1 ? '' : 's'} before this`;
+    ui.ctxTog.setAttribute('aria-expanded', String(open && !!list.length));
+    ui.stepsList.hidden = !open || !list.length;
+    ui.stepsList.innerHTML = '';
+    list.forEach((text, i) => {
+      const li = document.createElement('li');
+      const n = document.createElement('span'); n.className = 'n'; n.textContent = String(i + 1);
+      const t = document.createElement('span'); t.className = 't'; t.textContent = text; t.title = text;
+      const x = document.createElement('button'); x.textContent = '×'; x.dataset.rm = String(i); x.setAttribute('aria-label', `Remove step ${i + 1}`);
+      li.append(n, t, x); ui.stepsList.append(li);
+    });
+  }
+
+  function clampPop() {
+    const h = ui.pop.offsetHeight, m = 12;
+    let top = parseFloat(ui.pop.style.top) || m;
+    if (top + h > innerHeight - m) top = Math.max(m, innerHeight - h - m);
+    ui.pop.style.top = top + 'px';
+  }
+
   function openPop(point) {
     const d = state.editing.data;
     ui.popTarget.textContent = d.label;
@@ -391,6 +531,7 @@
     setSeg('priority', d.priority);
     ui.del.hidden = state.editing.mode !== 'edit';
     ui.saveBtn.textContent = state.editing.mode === 'edit' ? 'Save' : 'Add';
+    renderContext();
     ui.pop.hidden = false;
     const w = 320, h = ui.pop.offsetHeight, m = 12;
     let left = point.x + 14, top = point.y + 14;
@@ -430,7 +571,9 @@
         selectedText: selectedText || '',
         fx: r.width ? clamp((point.x - r.left) / r.width) : 0.5,
         fy: r.height ? clamp((point.y - r.top) / r.height) : 0.5,
-        docX: point.x + scrollX, docY: point.y + scrollY
+        docX: point.x + scrollX, docY: point.y + scrollY,
+        env: envNow(),
+        steps: state.recordSteps ? steps.filter((s) => s.t > stepsCutoff).slice(-STEPS_PER_NOTE).map((s) => s.text) : []
       }
     };
     openPop(point);
@@ -438,7 +581,7 @@
 
   function startEdit(a) {
     const el = resolve(a) || document.body;
-    state.editing = { mode: 'edit', id: a.id, el, data: { ...a } };
+    state.editing = { mode: 'edit', id: a.id, el, data: { ...a, steps: [...(a.steps || [])] } };
     openPop(markerPoint(a));
   }
 
@@ -451,6 +594,7 @@
       const a = { id: (crypto.randomUUID ? crypto.randomUUID() : String(Date.now()) + Math.random()), createdAt: new Date().toISOString(), ...ed.data };
       elCache.set(a.id, ed.el);
       state.annotations.push(a);
+      stepsCutoff = Date.now();
     } else {
       const i = state.annotations.findIndex((x) => x.id === ed.id);
       if (i >= 0) state.annotations[i] = { ...state.annotations[i], ...ed.data, updatedAt: new Date().toISOString() };
@@ -475,6 +619,18 @@
       const group = seg.parentElement.dataset.group;
       state.editing.data[group] = seg.dataset.v;
       setSeg(group, seg.dataset.v);
+      return;
+    }
+    if (state.editing && e.target.closest('.ctx-tog')) {
+      renderContext(ui.ctxTog.getAttribute('aria-expanded') !== 'true');
+      clampPop();
+      return;
+    }
+    const rm = e.target.closest('[data-rm]');
+    if (rm && state.editing) {
+      state.editing.data.steps.splice(Number(rm.dataset.rm), 1);
+      renderContext(true);
+      clampPop();
       return;
     }
     const act = e.target.closest('[data-act]');
@@ -503,7 +659,7 @@
     const d = state.detail;
     const list = state.annotations;
     let md = `# UI feedback for ${location.host}${location.pathname}\n\n`;
-    md += `- URL: ${location.href}\n- Viewport: ${innerWidth}×${innerHeight}\n- Annotations: ${list.length}\n`;
+    md += `- URL: ${location.href}\n- Browser: ${browserName()}\n- Annotations: ${list.length}\n`;
     const stackList = pageStack();
     if (stackList.length) md += `- Stack (detected): ${stackList.join(', ')}\n`;
     if (list.some((a) => a.selector.includes(' >>> '))) md += '- Note: `>>>` in a selector steps into a shadow root\n';
@@ -513,6 +669,15 @@
       md += `${a.comment}\n\n`;
       md += `- Selector: ${tick(a.selector)}\n`;
       if (a.selectedText) md += `- Selected text: "${a.selectedText}"\n`;
+      const env = a.env;
+      if (env) {
+        const extra = [`DPR ${env.dpr}`, env.dark ? 'dark mode' : 'light mode'];
+        if (env.touch) extra.push('touch');
+        if (env.reducedMotion) extra.push('reduced motion');
+        if (env.scrollY) extra.push(`scrolled to y=${env.scrollY}`);
+        md += `- Viewport: ${env.w}×${env.h} (${extra.join(', ')})\n`;
+        if (env.url && env.url !== location.href) md += `- Page when noted: ${env.url}\n`;
+      }
       if (d !== 'compact') {
         if (a.elementText && !a.selectedText) md += `- Element: <${a.tag}> "${a.elementText}"\n`;
         else md += `- Element: <${a.tag}>\n`;
@@ -522,6 +687,7 @@
         if (f.templates && f.templates.length > (f.sourceVia === 'server template comment' ? 1 : 0)) md += `- Templates (innermost first): ${f.templates.map(tick).join(' < ')}\n`;
         (f.behaviors || []).forEach((b) => { md += `- ${b}\n`; });
         if (a.path && a.path !== a.label) md += `- DOM path: ${tick(a.path)}\n`;
+        if (a.steps && a.steps.length) md += `- Steps before this note:\n${a.steps.map((s, k) => `   ${k + 1}. ${s}`).join('\n')}\n`;
       }
       if (d === 'full') {
         md += `- Position: x ${a.rect.x}, y ${a.rect.y}, ${a.rect.w}×${a.rect.h}px (page coordinates)\n`;
@@ -633,9 +799,10 @@
   });
 
   ui.panel.addEventListener('change', (e) => {
-    if (e.target.name !== 'detail') return;
-    state.detail = e.target.value;
-    store.set('settings', { detail: state.detail });
+    if (e.target.name === 'detail') state.detail = e.target.value;
+    else if (e.target.name === 'steps') { state.recordSteps = e.target.checked; if (!state.recordSteps) steps.length = 0; ui.rec.hidden = !state.recordSteps; }
+    else return;
+    store.set('settings', { detail: state.detail, steps: state.recordSteps });
   });
 
   // ---------- Page events ----------
@@ -737,12 +904,17 @@
     state.detail = settings.detail || 'standard';
     const radio = root.querySelector(`input[value="${state.detail}"]`);
     if (radio) radio.checked = true;
+    state.recordSteps = settings.steps !== false;
+    root.querySelector('input[name="steps"]').checked = state.recordSteps;
+    ui.rec.hidden = !state.recordSteps;
+    if (!state.recordSteps) steps.length = 0;
     await loadPage();
     if (await store.get(visKey)) setVisible(true);
   })();
 
   setInterval(() => {
     if (!host.isConnected) document.documentElement.appendChild(host);
+    checkNav();
     if (pageKey() !== state.key) { closePop(); loadPage(); }
     else if (state.visible && state.annotations.length) position();
   }, 700);

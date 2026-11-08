@@ -16,7 +16,7 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/biratdatta/pinpoint/releases/latest/download/pinpoint-v1.0.0.zip"><strong>⬇ Download pinpoint-v1.0.0.zip</strong></a>
+  <a href="https://github.com/biratdatta/pinpoint/releases/latest/download/pinpoint-v1.1.0.zip"><strong>⬇ Download pinpoint-v1.1.0.zip</strong></a>
 </p>
 
 <p align="center">
@@ -33,7 +33,7 @@
 
 Pinpoint isn't on the Chrome Web Store yet, so you load it unpacked. It takes about a minute.
 
-1. Download **[`pinpoint-v1.0.0.zip`](https://github.com/biratdatta/pinpoint/releases/latest/download/pinpoint-v1.0.0.zip)** from the [latest release](https://github.com/biratdatta/pinpoint/releases/latest) and unzip it somewhere permanent. Chrome loads the extension from that folder, so don't delete it.
+1. Download **[`pinpoint-v1.1.0.zip`](https://github.com/biratdatta/pinpoint/releases/latest/download/pinpoint-v1.1.0.zip)** from the [latest release](https://github.com/biratdatta/pinpoint/releases/latest) and unzip it somewhere permanent. Chrome loads the extension from that folder, so don't delete it.
 2. Open `chrome://extensions` and turn on **Developer mode** (top right).
 3. Click **Load unpacked** and select the `pinpoint` folder.
 4. Pin Pinpoint to your toolbar.
@@ -81,7 +81,7 @@ Here's an example of what you paste into your agent (Standard detail):
 # UI feedback for localhost:3000/settings
 
 - URL: http://localhost:3000/settings
-- Viewport: 1440×900
+- Browser: Chrome 131 on macOS
 - Annotations: 1
 - Stack (detected): Next.js, React, Tailwind CSS
 
@@ -90,18 +90,27 @@ Here's an example of what you paste into your agent (Standard detail):
 The Save button is misaligned with the Cancel button on mobile.
 
 - Selector: `#settings-form > div.actions > button.save-btn`
+- Viewport: 390×844 (DPR 3, dark mode, touch, scrolled to y=640)
 - Element: <button> "Save changes"
 - Components (React): SettingsPage > SettingsForm > FormActions > Button
 - Source: `src/components/FormActions.tsx:42`
 - DOM path: `main > form#settings-form > div.actions > button.save-btn`
+- Steps before this note:
+   1. Opened /settings at 1440×900
+   2. Resized viewport to 390×844
+   3. Clicked "Edit profile" `button.edit`
+   4. Typed in "Display name" `input#name`
+   5. Scrolled to y=640
 ```
+
+Every note records the viewport you saw it at (size, pixel ratio, light or dark mode, touch, scroll position), so responsive bugs can be reproduced, not just located. With **Record recent steps** on (the default, in the Output detail panel), it also lists the clicks, navigation, resizes and scrolls that led up to the note.
 
 Choose how much detail to include:
 
 | Detail | Contents |
 |--------|----------|
-| **Compact** | Selector, selected text, your note, type and priority |
-| **Standard** | Adds element text, component tree, source file and line, DOM path |
+| **Compact** | Selector, selected text, your note, type, priority, and the viewport when you made the note |
+| **Standard** | Adds element text, component tree, source file and line, DOM path, and the steps before the note |
 | **Full** | Adds page position, key attributes and computed styles |
 
 ## Works with any stack
@@ -136,6 +145,8 @@ Add a dev-only inspector plugin and Pinpoint reads its attributes automatically:
 ## Privacy
 
 Pinpoint makes no network requests. Notes are kept in Chrome's local extension storage and only leave your machine when you copy them.
+
+Recent steps are held in memory on the open tab and only saved when you add a note. They record which element you clicked or typed in, never what you typed. You can turn them off under Output detail → Record recent steps.
 
 | Permission | Why it's needed |
 |------------|-----------------|

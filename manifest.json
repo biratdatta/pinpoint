@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "Pinpoint: visual feedback for AI agents",
   "short_name": "Pinpoint",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Click any element, leave a note, and copy structured feedback for your AI coding agent. By Birat Datta.",
   "author": {
     "email": "birat.datta26@gmail.com"
